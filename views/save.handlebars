@@ -1,0 +1,362 @@
+<html>
+
+<head>
+  <title>Chess Saver</title>
+  <style>
+
+    canvas {
+      outline: 5px black solid;
+    }
+
+    .right {
+      float: left;
+      clear: left;
+      width: 25%;
+    }
+
+    #buttons button {
+      width: 150px;
+      height: 80px;
+    }
+
+    #nameForm input {
+      display: inline;
+    }
+  </style>
+  
+  <link rel="shortcut icon" href="/assets/img/favicon.png"/>
+  <link rel="stylesheet" type="text/css" href="/assets/style.css"/>
+  <script>
+    // Canvases
+    let canvas;
+    let buttonsCanvas;
+    // contexts
+    let ctx;
+    let bctx;
+    // Shorthand vars for spritesheet sizr
+    let imgW, imgH;
+    // for canvas
+    const width = 800, height = 800;
+
+    window.onload = init;
+    // Load images
+    let delImg = new Image();
+    delImg.src = "/assets/img/del.png";
+    let clearImg = new Image();
+    clearImg.src = "/assets/img/clear.png";
+    let pieces = new Image();
+    pieces.src = "/assets/img/pieces.png";
+    let imageLoaded = false;
+
+    // init board
+    let board = new Array(8);
+
+    // set default variabls
+    let fps = 60;
+    let activePiece = 'p';
+    let activeColor = 0;
+    // Stores mouse info
+    let mouseX = 0;
+    let mouseY = 0;
+    // Stores rects for the GUI
+    let rects;
+
+    // inits the board
+    for (let i = 0; i < 8; i++) {
+      board[i] = (new Array(8).fill(' '));
+    }
+    // loads the image (this is largest image so will take longest to load)
+    pieces.onload = function () { imageLoaded = true; imgW = pieces.width; imgH = pieces.height };
+
+    function init() {
+      // Hold execution until image loads
+      while (!imageLoaded) {
+        // WAIT
+      }
+
+      // Select and add events to main canvas
+      canvas = document.querySelector('#canvas');
+      canvas.addEventListener('mousedown', function (e) {
+        getCursorPosition(canvas, e);
+      });
+      canvas.addEventListener('mousemove', function (e) {
+        mouseX = e.x;
+        mouseY = e.y;
+      });
+
+      ctx = canvas.getContext('2d');
+
+      // Select and add events to GUI canvas
+      buttonsCanvas = document.querySelector('#pieces');
+      buttonsCanvas.addEventListener('mousedown', function (e) {
+        checkBoxCollisions(buttonsCanvas, e);
+      });
+
+      bctx = buttonsCanvas.getContext('2d');
+
+      // Define the rectangles of the GUI
+      rects = [
+        { type: "k", x: 50, y: 50 },
+        { type: "q", x: 150, y: 50 },
+        { type: "r", x: 50, y: 200 },
+        { type: "b", x: 150, y: 200 },
+        { type: "n", x: 50, y: 350 },
+        { type: "p", x: 150, y: 350 },
+        { type: "0", x: 50, y: 500 },
+        { type: "1", x: 150, y: 500 },
+        { type: "d", x: 50, y: 650 },
+        { type: "c", x: 150, y: 650 }
+      ];
+      // Draw the button GUI
+      drawButtons();
+      // Hook up the submit button
+      let temp = document.querySelector('#nameForm');
+      temp.onsubmit = sendPost;
+      setInterval(resetCanvas, 1000 / fps);
+      setInterval(drawButtons, 10000 / fps);
+
+    }
+
+    // Draws the buttons GUI
+    function drawButtons() {
+      bctx.fillStyle = "lightgray";
+      bctx.fillRect(0, 0, 300, 800);
+      // iterates through all the rects and draws them
+      for (let i = 0; i < rects.length; i++) {
+        if (Number(rects[i].type) >= 0) {
+          bctx.fillStyle = ((Number(rects[i].type) === 0) ? "white" : "black");
+          bctx.fillRect(rects[i].x, rects[i].y, 100, 100);
+        }
+        else {
+          drawPiece(rects[i].type, activeColor, rects[i].x, rects[i].y, bctx);
+        }
+      }
+    }
+
+    // Checks mouse collision with GUI rects
+    function checkBoxCollisions(canv, event) {
+      // Get mouse x and y
+      const rect = canv.getBoundingClientRect();
+      const x = (event.clientX - rect.left);
+      const y = (event.clientY - rect.top);
+      // AABB
+      for (let i = 0; i < rects.length; i++) {
+        let r = rects[i];
+        if (x > r.x &&
+          x < r.x + 100 &&
+          y > r.y &&
+          y < r.y + 100) {
+
+          if (Number(r.type) >= 0) {
+            activeColor = Number(r.type);
+          }
+          else if (r.type === 'd') {
+            activePiece = ' ';
+          }
+          else if (r.type === 'c') {
+            resetBoard();
+          }
+          else {
+            activePiece = r.type;
+          }
+        }
+      }
+    }
+
+    // Handles Post response
+    const handleResponse = (e) => {
+      const xhr = e.target;
+      const content = document.querySelector('h1');
+
+      switch (xhr.status) {
+        case 200:
+          content.innerHTML = '<b>Success!</b>';
+          break;
+        case 201:
+          content.innerHTML = '<b>Created!</b>';
+          break;
+        case 204:
+          content.innerHTML = '<b>Updated (No Content)!</b>';
+          break;
+        case 400:
+          content.innerHTML = '<b>Bad Request!</b>';
+          break;
+        default:
+          content.innerHTML = '<b>Error code not implemented by client</b>';
+      }
+
+      // make sure that something is in the .response property first!
+      const obj = xhr.response && JSON.parse(xhr.response);
+      if (obj.id) {
+        content.innerHTML += `<p>id = ${obj.id}</p><p>message =NULL</p>`;
+      }
+    };
+
+    // Sends a post request
+    const sendPost = (e) => {
+      console.log("Submit pressed");
+      // "kill" the default behavior of the form (reloading the page it's on)
+      e.preventDefault();
+
+      const nameForm = e.target;
+      // pull the `action` and `method` from the form (we could have just hard-coded these)
+      const nameAction = "/maker";
+      const nameMethod = "POST";
+
+
+      // Gather board data
+      let boardData = [];
+      let dataCount = 0;
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+          // If there's a piece here
+          if (board[i][j] != ' ') {
+            // Create an object with requisite data
+            boardData[dataCount] = {
+              type: board[i][j][0],
+              color: Number(board[i][j][1]) === 0 ? 'white' : 'black',
+              row: j + 1,
+              col: i + 1
+            }
+            dataCount++;
+          }
+        }
+      }
+
+      boardData = JSON.stringify(boardData);
+
+      const nameField = nameForm.querySelector("#nameField");
+      const csrfField = nameForm.querySelector("#csrf");
+
+      const formData = `name=${nameField.value}&board=${boardData}&_csrf=${csrfField.value}`;
+
+      const xhr = new XMLHttpRequest();
+      xhr.onload = handleResponse;
+      xhr.open(nameMethod, nameAction); // NEW - in the past we've been using "GET"
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhr.send(formData);
+
+      return false; // prevents event bubbling
+    };
+
+
+    // color -> 0 is white, 1 is black
+    function drawPiece(type, color, x, y, context) {
+      switch (type) {
+        case "k":
+          context.drawImage(pieces, 0, color * pieces.height / 2, imgW / 6, imgW / 6, x, y, 100, 100);
+          break;
+        case "q":
+          context.drawImage(pieces, imgW / 6 * 1, color * pieces.height / 2, imgW / 6, imgW / 6, x, y, 100, 100);
+          break;
+        case "b":
+          context.drawImage(pieces, imgW / 6 * 2, color * pieces.height / 2, imgW / 6, imgW / 6, x, y, 100, 100);
+          break;
+        case "n":
+          context.drawImage(pieces, imgW / 6 * 3, color * pieces.height / 2, imgW / 6, imgW / 6, x, y, 100, 100);
+          break;
+        case "r":
+          context.drawImage(pieces, imgW / 6 * 4, color * pieces.height / 2, imgW / 6, imgW / 6, x, y, 100, 100);
+          break;
+        case "p":
+          context.drawImage(pieces, imgW / 6 * 5, color * pieces.height / 2, imgW / 6, imgW / 6, x, y, 100, 100);
+          break;
+        case "d":
+          context.drawImage(delImg, 0, 0, delImg.width, delImg.height, x, y, 100, 100);
+          break;
+        case "c":
+          context.drawImage(clearImg, 0, 0, clearImg.width, clearImg.height, x, y, 100, 100);
+          break;
+        default: // Board at location is empty
+          break;
+
+      }
+
+    }
+
+    // Adds piece to the underlying board array
+    function addPiece(type, color, x, y) {
+      board[x][y] = type + "" + color;
+    }
+
+    // draws the board BACKGROUND
+    function drawBoard(size) {
+      ctx.fillStyle = "white";
+      let bit = false;
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+          if (j % 2 == bit) ctx.fillRect(size * i, size * j, size, size);
+        }
+        bit = !bit;
+      }
+    }
+
+    // Draws the pieces from the underlying array
+    function drawPieces() {
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          drawPiece((board[i][j])[0], Number((board[i][j])[1]), i * 100, j * 100, ctx)
+        }
+      }
+    }
+
+    // Resets and draws the canvas EVERY INTERVAL
+    function resetCanvas() {
+      ctx.clearRect(0, 0, 800, 800);
+      ctx.fillStyle = "gray";
+      ctx.fillRect(0, 0, width, height);
+      drawBoard(width / 8);
+      drawPieces();
+      // draw piece that follows the mouse
+      let rect = canvas.getBoundingClientRect();
+      ctx.globalAlpha = .8;
+      drawPiece(
+        activePiece,
+        activeColor,
+        mouseX - rect.left - (width / 16),
+        mouseY - rect.top - (width / 16),
+        ctx);
+      ctx.globalAlpha = 1;
+    }
+
+    // Reset the underlying board array
+    function resetBoard() {
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+          board[i][j] = ' ';
+        }
+      }
+    }
+
+    // Code adapted from online source:
+    // https://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element/18053642#18053642
+    function getCursorPosition(canvas, event) {
+      const rect = canvas.getBoundingClientRect();4
+      const x = (event.clientX - rect.left);
+      const y = (event.clientY - rect.top);
+      addPiece(activePiece, activeColor, Math.floor(x / 100), Math.floor(y / 100));
+    }
+  </script>
+</head>
+
+<body>
+  <header>
+  <nav><a href="/login"><img id="logo" src="/assets/img/chess.png" alt="chess logo"/></a>
+    <div class="navlink"><a href="/logout">Log out</a></div>
+    <div class="navlink"><a href="/maker">Viewing Page</a></div>
+  </nav>
+    <h1>Select a piece and click on the board to save a position!</h1>
+  </header>
+
+  <form id="nameForm">
+    <label for="name">NAME</label>
+    <input type="text" id="nameField" name="name">
+    <input id="nameForm" type="submit" value="Submit">
+    <input type="hidden" id="csrf" name="_csrf" value={{csrfToken}} />
+  </form>
+  <canvas id="pieces" width="300" height="800"></canvas>
+  <canvas id="canvas" width="800" height="800"></canvas>
+
+</body>
+
+</html>

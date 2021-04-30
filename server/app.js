@@ -15,7 +15,7 @@ const redis = require('redis');
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
 
 // DB connection
-const dbURL = 'mongodb+srv://jxs4264:8DDXbidLp7PE!Sj@cluster0.om6bx.mongodb.net/simpleMVCExample';
+const dbURL = 'mongodb+srv://jxs4264:8DDXbidLp7PE!Sj@cluster0.om6bx.mongodb.net/chessPositions';
 
 // Setup mongoose options to use newer functionality
 const mongooseOptions = {

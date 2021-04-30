@@ -1,6 +1,6 @@
 "use strict";
 
-// import {useRef} from '@babel/preset-react'
+// THIS WILL HANDLE RENDERING THAT SAVING PAGE
 var handleBoard = function handleBoard(e) {
   e.preventDefault();
   $("#domoMessage").animate({
@@ -62,23 +62,78 @@ var BoardList = function BoardList(props) {
   }
 
   var domoNodes = props.boards.map(function (board) {
+    var canvas = React.useRef(null);
+    canvas.current = document.createElement('canvas');
+    var canv = canvas.current;
+    console.log("TEST"); // canv.myRef = React.createRef();
+
+    var ctx = canv.getContext('2d');
+    ctx.fillStyle = "gray";
+    ctx.fillRect(0, 0, 100, 100);
     return /*#__PURE__*/React.createElement("div", {
       key: board._id,
       className: "domo"
     }, /*#__PURE__*/React.createElement("img", {
-      src: "/assets/img/chess.png",
+      src: "/assets/img/domoface.jpeg",
       alt: "domo face",
       className: "domoFace"
     }), /*#__PURE__*/React.createElement("h3", {
       className: "domoName"
-    }, " Name: ", board.name, " "), /*#__PURE__*/React.createElement("h3", {
-      className: "domoAge"
-    }, " Board: ", JSON.stringify(board.board), " "));
+    }, " Test: ", board.name, " "), /*#__PURE__*/React.createElement("canvas", {
+      ref: canvas
+    }));
   });
   return /*#__PURE__*/React.createElement("div", {
     className: "domoList"
   }, domoNodes);
-};
+}; // color -> 0 is white, 1 is black
+
+
+function drawPiece(type, color, x, y, ctx) {
+  switch (type) {
+    case "k":
+      ctx.drawImage(pieces, 0, color * pieces.height / 2, imgW / 6, imgW / 6, x * S, y * S, S, S);
+      break;
+
+    case "q":
+      ctx.drawImage(pieces, imgW / 6 * 1, color * pieces.height / 2, imgW / 6, imgW / 6, x * S, y * S, S, S);
+      break;
+
+    case "b":
+      ctx.drawImage(pieces, imgW / 6 * 2, color * pieces.height / 2, imgW / 6, imgW / 6, x * S, y * S, S, S);
+      break;
+
+    case "n":
+      ctx.drawImage(pieces, imgW / 6 * 3, color * pieces.height / 2, imgW / 6, imgW / 6, x * S, y * S, S, S);
+      break;
+
+    case "r":
+      ctx.drawImage(pieces, imgW / 6 * 4, color * pieces.height / 2, imgW / 6, imgW / 6, x * S, y * S, S, S);
+      break;
+
+    case "p":
+      ctx.drawImage(pieces, imgW / 6 * 5, color * pieces.height / 2, imgW / 6, imgW / 6, x * S, y * S, S, S);
+      break;
+
+    default:
+      // Board at location is empty
+      break;
+  }
+}
+
+function drawBoard(size, ctx) {
+  // console.log("drawBoard called");
+  ctx.fillStyle = "white";
+  var bit = false;
+
+  for (var i = 0; i < 8; i++) {
+    for (var j = 0; j < 8; j++) {
+      if (j % 2 == bit) ctx.fillRect(size * i, size * j, size, size);
+    }
+
+    bit = !bit;
+  }
+}
 
 var loadBoardsFromServer = function loadBoardsFromServer() {
   sendAjax('GET', '/getBoards', null, function (data) {
@@ -89,6 +144,9 @@ var loadBoardsFromServer = function loadBoardsFromServer() {
 };
 
 var setup = function setup(csrf) {
+  ReactDOM.render( /*#__PURE__*/React.createElement(BoardForm, {
+    csrf: csrf
+  }), document.querySelector("#makeDomo"));
   ReactDOM.render( /*#__PURE__*/React.createElement(BoardList, {
     domos: []
   }), document.querySelector("#domos"));
