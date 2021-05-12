@@ -189,27 +189,40 @@ nav:nth-child(1) {
     transform: rotate(330deg);
 }
 
-#domos {
-    width: 40%;
+#boards {
+    width: 80%;
     min-width: 400px;
     border: 2px solid #55acee;
     border-radius: 4px;
     margin: 0 auto;
     margin-top: 100px;
 }
-
-.domo {
-    width: 95%;
-    margin: 0 auto;
-    margin-top: 2px;
-    margin-bottom: 2px;
+#saveBoards {
+    width: 90%;
+    min-width: 400px;
     border: 2px solid #55acee;
     border-radius: 4px;
+    margin: 0 auto;
+    margin-top: 100px;
+}
+.boardList{
+    width: 100%;
+}
+
+.board {
+    width: 33.334%;
+    display: inline-block;
     background-color: #55acee;
-    padding: 10px;
     min-height:60px;
     overflow: hidden;
 }
+
+.saveDiv{
+    width: 98%;
+    background-color: #5091e1;
+    margin: 0 auto;
+}
+
 
 .domo:hover {
     transition: border-color 0.2s ease-out;
@@ -236,21 +249,23 @@ h3.emptyDomo {
     margin-top: 18px;
 }
 
-h3.domoName {
-    float:left;
-    width: 200px;
+h3.boardName {
     font-weight: bold;
-    padding-left: 65px;
+    text-align: center;
     font-size: 1.5em;
 }
 
-h3.domoAge {
-    float:right;
-    text-align: left;
-    width: 100px;
-    font-weight: bold;
-    padding-right: 40px;
-    font-size: 1.5em;
+h3.boardDisplay {
+    text-align: center;
+    padding-bottom: 10px;
+}
+
+h3.saveBoard {
+    width: 60%;
+    float: right;
+}
+h3.saveButtons {
+    width: 20%;
 }
 
 .domo:first-child {
