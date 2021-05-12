@@ -50,6 +50,7 @@
     "express-session": "^1.17.1",
     "helmet": "^3.23.3",
     "mongoose": "^5.12.3",
+    "react": "^17.0.2",
     "redis": "^3.1.1",
     "serve-favicon": "^2.5.0",
     "underscore": "^1.13.0"
